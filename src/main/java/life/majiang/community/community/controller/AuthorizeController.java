@@ -14,7 +14,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.UUID;
 
 @Controller
@@ -36,7 +38,7 @@ public class AuthorizeController{
 
     @GetMapping("/callback")
     public String callback(@RequestParam(name = "code") String code,
-                           @RequestParam(name="state") String state, HttpServletRequest request) throws JSONException {
+                           @RequestParam(name="state") String state, HttpServletRequest request, HttpServletResponse response) throws JSONException {
         AccessTokenDTO accessTokenDTO = new AccessTokenDTO();
         accessTokenDTO.setCode(code);
         accessTokenDTO.setClient_id(clientId);
@@ -50,13 +52,8 @@ public class AuthorizeController{
 
         System.out.println("这是"+accessToken);
         String user = githubProvider.getUser(accessToken);
-
         GithubUser githubUser= new GithubUser();
-
-
         JSONObject jsonObject = new JSONObject(user);
-
-        //JSONObject personObject = jsonObject.getJSONObject("plan");
         String name = "";
         int id = 0;
         try {
@@ -73,13 +70,15 @@ public class AuthorizeController{
         System.out.println(id);
         if(name!=null){
             User user1 = new User();
-            user1.setToken(UUID.randomUUID().toString());
+            String token = UUID.randomUUID().toString();
+            user1.setToken(token);
             user1.setName(githubUser.getName());
             user1.setAccountId(String.valueOf(githubUser.getId()));
             user1.setGmtCreate(System.currentTimeMillis());
             user1.setGmtModified(user1.getGmtCreate());
             userMapper.insert(user1);
-            request.getSession().setAttribute("user",githubUser);
+            response.addCookie(new Cookie("token",token));
+            //request.getSession().setAttribute("user",githubUser);
 
 
             return "redirect:/";
